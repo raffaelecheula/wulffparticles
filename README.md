@@ -1,2 +1,2 @@
-# nanoparticles
-Tools to create atomistic models of nanoparticles.
+# wulffparticles
+Tools to create atomistic models of Wulff particles.
