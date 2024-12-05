@@ -26,7 +26,7 @@ class AsymmetricParticle(BaseParticle):
         surface_energies: Dict[tuple, float],
         primitive_structure: Atoms = None,
         natoms: int = 1000,
-        random_multiplier: float = 1.0,
+        asymm_multiplier: float = 1.0,
         symprec: float = 1e-5,
         tol: float = 1e-5,
     ):
@@ -51,8 +51,7 @@ class AsymmetricParticle(BaseParticle):
         
         for miller_indices in surface_energies_asymm.keys():
             surface_energies_asymm[miller_indices] *= np.random.uniform(
-                low=1.0,
-                high=random_multiplier,
+                low=1.0, high=asymm_multiplier,
             )
         
         forms = []
@@ -76,6 +75,10 @@ class AsymmetricParticle(BaseParticle):
     @property
     def atoms(self):
         return self._get_atoms()
+
+    @property
+    def diameter(self):
+        return 2*(3/4/np.pi*self.volume)**(1/3)
 
     def get_shifted_atoms(
         self,

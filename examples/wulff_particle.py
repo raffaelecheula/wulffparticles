@@ -11,7 +11,14 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from wulffpack import SingleCrystal, Icosahedron, Decahedron
 
 from wulffparticles.asymmetric_particle import AsymmetricParticle
-from wulffparticles.facet_types import get_facet_types, write_facet_types
+from wulffparticles.sites_names import (
+    get_sites_hkl,
+    get_sitenames_distribution_types,
+)
+from wulffparticles.visualize import (
+    write_atoms_and_sites_hkl,
+    write_particle_and_atoms,
+)
 
 # -------------------------------------------------------------------------------------
 # MAIN
@@ -22,10 +29,10 @@ atoms_bulk = bulk('Ni', cubic=True)
 
 # Reference surface energies.
 surface_energies = {
-    (1, 0, 0): 1.05,
-    (1, 1, 0): 1.02,
-    (1, 1, 1): 1.00,
-    (2, 1, 1): 1.02,
+    (1, 0, 0): 1.08,
+    (1, 1, 0): 1.08,
+    (1, 1, 1): 1.05,
+    (2, 1, 1): 1.08,
 }
 
 # Get particle.
@@ -33,17 +40,23 @@ particle = AsymmetricParticle(
     surface_energies=surface_energies,
     primitive_structure=atoms_bulk,
     natoms=20000,
-    random_multiplier=1.0,
+    asymm_multiplier=1.0,
 )
 atoms = particle.get_shifted_atoms(center_shift=None)
-# Calculate facet types.
-facet_types = get_facet_types(
+# Calculate sites hkl.
+sites_hkl = get_sites_hkl(
     atoms=atoms,
     particle=particle,
     primitive_structure=atoms_bulk,
 )
-# Write facet types.
-write_facet_types(atoms=atoms, facet_types=facet_types, filename="atoms.png")
+# Write atoms and sites hkl.
+write_atoms_and_sites_hkl(atoms=atoms, sites_hkl=sites_hkl, filename="atoms.png")
+
+# Get sites distribution types.
+sits_distrib_dict = get_sitenames_distribution_types(sites_hkl=sites_hkl)
+
+# Write particle and atoms.
+write_particle_and_atoms(particle=particle, atoms=atoms, filename="particle.png")
 
 # -------------------------------------------------------------------------------------
 # END

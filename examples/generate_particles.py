@@ -11,7 +11,7 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from wulffpack import SingleCrystal, Icosahedron, Decahedron
 
 from wulffparticles.asymmetric_particle import AsymmetricParticle
-from wulffparticles.facet_types import get_facet_types, write_facet_types
+from wulffparticles.sites_names import get_sites_hkl, get_sitenames_distribution_types
 
 # -------------------------------------------------------------------------------------
 # MAIN
@@ -19,26 +19,25 @@ from wulffparticles.facet_types import get_facet_types, write_facet_types
 
 # Parameters.
 nsamples = 1000
-natoms_low = 12000
-natoms_high = 16000
-esurf_low = 1.00
-esurf_high = 1.20
-random_multiplier = 1.0
-random_seed = 16
+natoms_low = 8000
+natoms_high = 22000
+symm_multiplier = 1.05
+asymm_multiplier = 1.05
+random_seed = None
 
 # Atoms bulk.
 atoms_bulk = bulk('Ni', cubic=True)
 
 # Ase Database.
-db_name = 'Ni_new.db'
+db_name = 'Ni.db'
 db_ase = connect(db_name, append=True)
 
 # Reference surface energies.
 esurf_ref = {
-    (1, 0, 0): 1.11,
-    (1, 1, 0): 1.12,
+    (1, 0, 0): 1.08,
+    (1, 1, 0): 1.10 * 2.00,
     (1, 1, 1): 1.00,
-    (2, 1, 1): 1.14,
+    (2, 1, 1): 1.10 * 0.95,
 }
 
 # Center shifts.
@@ -46,7 +45,7 @@ a = atoms_bulk.cell[0,0]
 center_shifts = [[0, 0, 0], [a/2, 0, 0], [a/4, a/4, 0], [a/4, a/4, a/4]]
 
 # Get formation energy function.
-def get_formation_energy(ncoord_dist):
+def get_formation_energy(ncoord_distrib):
     # Thermodynamics data.
     e_coh_bulk = -4.82 # [eV]
     a_model_relax = 1.10e-4 # [eV]
@@ -54,18 +53,18 @@ def get_formation_energy(ncoord_dist):
     # Calculate cohesive energy.
     e_coh = 0.
     for ii in range(13):
-        e_coh += ncoord_dist[ii] * e_coh_bulk * np.sqrt(ii)/np.sqrt(12)
-        e_coh += ncoord_dist[ii] * a_model_relax*(12-ii)**b_model_relax
+        e_coh += ncoord_distrib[ii] * e_coh_bulk * np.sqrt(ii)/np.sqrt(12)
+        e_coh += ncoord_distrib[ii] * a_model_relax*(12-ii)**b_model_relax
     # Calculate formation energy.
-    e_form = e_coh-e_coh_bulk*sum(ncoord_dist)
+    e_form = e_coh-e_coh_bulk*sum(ncoord_distrib)
     return e_form
 
 # Generate random numbers.
 np.random.seed(seed=random_seed)
-esurf_random_dict = {}
+symm_multiplier_dict = {}
 for hkl in esurf_ref:
-    esurf_random_dict[hkl] = np.random.uniform(
-        low=esurf_low, high=esurf_high, size=nsamples,
+    symm_multiplier_dict[hkl] = np.random.uniform(
+        low=1, high=symm_multiplier, size=nsamples,
     )
 natoms_random = np.random.randint(low=natoms_low, high=natoms_high, size=nsamples)
 center_random = np.random.randint(low=0, high=len(center_shifts), size=nsamples)
@@ -77,16 +76,21 @@ for ii in range(nsamples):
     # Get surface energies.
     surface_energies = {}
     for hkl in esurf_ref:
-        surface_energies[hkl] = esurf_ref[hkl]+esurf_random_dict[hkl][ii]
+        surface_energies[hkl] = esurf_ref[hkl]*symm_multiplier_dict[hkl][ii]
     # Get particle shape.
     particle = AsymmetricParticle(
         surface_energies=surface_energies,
         primitive_structure=atoms_bulk,
         natoms=natoms_random[ii],
-        random_multiplier=random_multiplier,
+        asymm_multiplier=asymm_multiplier,
     )
     atoms = particle.get_shifted_atoms(center_shift=center_shifts[center_random[ii]])
-    facet_types = get_facet_types(atoms=atoms, particle=particle)
+    sites_hkl = get_sites_hkl(
+        atoms=atoms,
+        particle=particle,
+        primitive_structure=atoms_bulk,
+    )
+    sites_distrib = get_sitenames_distribution_types(sites_hkl=sites_hkl)
     # Calculate coordination numbers.
     nlist = NeighborList(
         cutoffs=natural_cutoffs(atoms),
@@ -97,32 +101,34 @@ for ii in range(nsamples):
     )
     nlist.update(atoms)
     ncoords = np.sum(nlist.get_connectivity_matrix(sparse=False), axis=1)
-    ncoord_dist = np.bincount(ncoords)
-    ncoord_str = ",".join([str(ii) for ii in ncoord_dist])
+    ncoord_distrib = np.bincount(ncoords)
+    ncoord_str = ",".join([str(ii) for ii in ncoord_distrib])
     # Add atoms info.
     natoms = len(atoms)
-    diameter = 2*(3/4/np.pi*particle.volume)**(1/3)
     atoms.info = {
         "natoms": natoms,
         "ncoords": ncoords,
-        "ncoord_dist": ncoord_dist,
+        "ncoord_distrib": ncoord_distrib,
         "miller_indices": list(surface_energies.keys()),
         "surface_energies": list(surface_energies.values()),
         "miller_indices_asymm": list(particle.surface_energies_asymm.keys()),
         "surface_energies_asymm": list(particle.surface_energies_asymm.values()),
         "volume": particle.volume,
-        "diameter": diameter,
+        "diameter": particle.diameter,
         "facet_fractions": list(particle.facet_fractions.values()),
+        "sites_distrib_facets": sites_distrib["facets"],
+        "sites_distrib_edges": sites_distrib["edges"],
+        "sites_distrib_corners": sites_distrib["corners"],
     }
     # Write to database.
     if db_ase.count(natoms=natoms, ncoord_str=ncoord_str) == 0:
         # Calculate formation energy.
-        energy = get_formation_energy(ncoord_dist=ncoord_dist)
+        energy = get_formation_energy(ncoord_distrib=ncoord_distrib)
         atoms.calc = SinglePointCalculator(atoms=atoms, energy=energy)
         # Write atoms to database.
         db_ase.write(atoms=atoms, ncoord_str=ncoord_str, data=atoms.info)
         # Print to screen.
-        ncoord_print = ",".join([f"{ii:6d}" for ii in ncoord_dist])
+        ncoord_print = ",".join([f"{ii:6d}" for ii in ncoord_distrib])
         print(f"| {natoms:6d} | {ncoord_print} | {energy/natoms:5.3f} |")
 
 # -------------------------------------------------------------------------------------
