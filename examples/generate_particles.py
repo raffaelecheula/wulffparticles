@@ -18,9 +18,9 @@ from wulffparticles.sites_names import get_sites_hkl, get_sitenames_distribution
 # -------------------------------------------------------------------------------------
 
 # Parameters.
-nsamples = 1000
-natoms_low = 8000
-natoms_high = 22000
+nsamples = 3000
+natoms_low = 5000
+natoms_high = 28000
 symm_multiplier = 1.05
 asymm_multiplier = 1.05
 random_seed = None
@@ -35,9 +35,13 @@ db_ase = connect(db_name, append=True)
 # Reference surface energies.
 esurf_ref = {
     (1, 0, 0): 1.08,
-    (1, 1, 0): 1.10 * 2.00,
+    (1, 1, 0): 1.10,
     (1, 1, 1): 1.00,
-    (2, 1, 1): 1.10 * 0.95,
+    (2, 1, 0): 1.10,
+    (2, 1, 1): 1.10,
+    (3, 1, 1): 1.10,
+    (3, 2, 1): 1.10,
+    (3, 3, 1): 1.10,
 }
 
 # Center shifts.
@@ -113,6 +117,7 @@ for ii in range(nsamples):
         "surface_energies": list(surface_energies.values()),
         "miller_indices_asymm": list(particle.surface_energies_asymm.keys()),
         "surface_energies_asymm": list(particle.surface_energies_asymm.values()),
+        "center_shift": center_shifts[center_random[ii]],
         "volume": particle.volume,
         "diameter": particle.diameter,
         "facet_fractions": list(particle.facet_fractions.values()),

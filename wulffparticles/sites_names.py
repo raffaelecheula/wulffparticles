@@ -15,7 +15,7 @@ def get_sites_hkl(
     particle: BaseParticle,
     primitive_structure: Atoms,
     symprec: float = 1e-5,
-    epsi: float = 1e-5,
+    epsi: float = 1e-3,
 ) -> list:
     """Get the sites hkl for each surface atom."""
     from wulffpack.core.geometry import get_symmetries, get_standardized_structure
@@ -29,7 +29,7 @@ def get_sites_hkl(
         hkl = equation[:3]/np.min([abs(ii) for ii in equation[:3] if abs(ii) > epsi])
         hkl = tuple([int(round(ii)) for ii in hkl])
         # Get site hkl.
-        distances = np.dot(atoms.positions, equation[:3])
+        distances = -np.dot(atoms.positions, equation[:3])
         for ii in np.where(np.abs(distances-equation[3]) < epsi)[0]:
             if len(sites_hkl[ii]) == 0 or hkl not in sites_hkl[ii]:
                 sites_hkl[ii].append(hkl)

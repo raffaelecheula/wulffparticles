@@ -29,16 +29,16 @@ def get_sites_concentrations(
     probabilities: list,
     natoms_fun: callable = lambda atoms: atoms.info["natoms"],
     sites_fun: callable = lambda atoms, key: atoms.info[f"sites_distrib_{key}"],
-    probability_thr: float = 1e-3,
+    probability_thr: float = 1e-10,
 ) -> dict:
     """Calaculate natoms distribution and sites distributions."""
     sites_conc = {"facets": {}, "edges": {}, "corners": {}}
     for pp in np.argsort(-np.array(probabilities)):
         if probabilities[pp] < probability_thr:
             break
-        natoms = atoms_list[pp].info["natoms"]
+        natoms = natoms_fun(atoms=atoms_list[pp])
         for key in sites_conc:
-            sites_distrib = atoms_list[pp].info[f"sites_distrib_{key}"]
+            sites_distrib = sites_fun(atoms=atoms_list[pp], key=key)
             for site in sites_distrib:
                 sites_conc[key][site] = (
                     + sites_conc[key].get(site, 0)
