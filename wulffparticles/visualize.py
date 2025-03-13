@@ -53,7 +53,7 @@ def write_particle_and_atoms(
     linewidth: float = 0.5,
     colors: dict = None,
     legend: bool = True,
-    atoms_color: str = "w",
+    atoms_color: str = "jmol",
     atoms_scale: float = 0.97,
     atoms_radii: float = 120.0,
     filename: str = "particle.png",
@@ -65,6 +65,9 @@ def write_particle_and_atoms(
     fig = plt.figure(figsize=(6, 6), dpi=300)
     ax = plt.axes(projection='3d')
     radii = covalent_radii[atoms.numbers]
+    if atoms_color == "jmol":
+        from ase.data.colors import jmol_colors
+        atoms_color = jmol_colors[atoms.numbers]
     ax.scatter(
         xs=atoms.positions[:,0] * atoms_scale,
         ys=atoms.positions[:,1] * atoms_scale,

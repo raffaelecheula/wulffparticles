@@ -26,7 +26,8 @@ class AsymmetricParticle(BaseParticle):
         surface_energies: Dict[tuple, float],
         primitive_structure: Atoms = None,
         natoms: int = 1000,
-        asymm_multiplier: float = 1.0,
+        asymm_multiplier: float = None,
+        surface_energies_asymm: Dict[tuple, float] = None,
         symprec: float = 1e-5,
         tol: float = 1e-5,
     ):
@@ -40,19 +41,23 @@ class AsymmetricParticle(BaseParticle):
         )
         symmetries = [np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])]
         
-        surface_energies_asymm = {}
+        surface_energies_new = {}
         parent_miller_indices = {}
         for miller_indices in surface_energies.keys():
             for sym in full_symmetries:
                 hkl = tuple([int(ii) for ii in np.dot(sym, miller_indices)])
-                if hkl not in surface_energies_asymm.keys():
-                    surface_energies_asymm[hkl] = surface_energies[miller_indices]
+                if hkl not in surface_energies_new.keys():
+                    surface_energies_new[hkl] = surface_energies[miller_indices]
                     parent_miller_indices[hkl] = miller_indices
         
-        for miller_indices in surface_energies_asymm.keys():
-            surface_energies_asymm[miller_indices] *= np.random.uniform(
-                low=1.0, high=asymm_multiplier,
-            )
+        if surface_energies_asymm is None:
+            surface_energies_asymm = surface_energies_new
+        
+        if asymm_multiplier is not None:
+            for miller_indices in surface_energies_asymm.keys():
+                surface_energies_asymm[miller_indices] *= np.random.uniform(
+                    low=1.0, high=asymm_multiplier,
+                )
         
         forms = []
         for miller_indices, energy in surface_energies_asymm.items():
