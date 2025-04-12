@@ -54,8 +54,8 @@ def write_particle_and_atoms(
     colors: dict = None,
     legend: bool = True,
     atoms_color: str = "jmol",
-    atoms_scale: float = 0.97,
-    atoms_radii: float = 120.0,
+    scale_particle: float = 0.90,
+    scale_radii: float = 0.90,
     filename: str = "particle.png",
 ):
     """Write an image with the particle shape and the atoms inside."""
@@ -68,18 +68,19 @@ def write_particle_and_atoms(
     if atoms_color == "jmol":
         from ase.data.colors import jmol_colors
         atoms_color = jmol_colors[atoms.numbers]
+    particle.make_plot(ax=ax, alpha=0, linewidth=linewidth, colors=colors)
+    camera_zoom = (250 * scale_particle / np.max(np.abs(ax.get_w_lims()))) ** 2
     ax.scatter(
-        xs=atoms.positions[:,0] * atoms_scale,
-        ys=atoms.positions[:,1] * atoms_scale,
-        zs=atoms.positions[:,2] * atoms_scale,
+        xs=atoms.positions[:,0] * scale_particle,
+        ys=atoms.positions[:,1] * scale_particle,
+        zs=atoms.positions[:,2] * scale_particle,
         color=atoms_color,
         alpha=1,
         edgecolors="k",
         linewidth=1,
-        s=atoms_radii * radii,
+        s=scale_radii * camera_zoom * radii,
     )
-    particle.make_plot(ax=ax, alpha=0, linewidth=linewidth, colors=colors)
-    plt.subplots_adjust(left=0, bottom=0, right=1, top=1)
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95)
     plt.axis('off')
     if legend:
         fig.legend(frameon=False)
@@ -92,7 +93,7 @@ def write_particle_and_atoms(
     fig = plt.figure(figsize=(6, 6), dpi=300)
     ax = plt.axes(projection='3d')
     particle.make_plot(ax=ax, alpha=1, linewidth=linewidth, colors=colors)
-    plt.subplots_adjust(left=0, bottom=0, right=1, top=1)
+    plt.subplots_adjust(left=0.05, bottom=0.05, right=0.95, top=0.95)
     plt.axis('off')
     if legend:
         fig.legend(frameon=False)
