@@ -30,17 +30,23 @@ class AsymmetricParticle(BaseParticle):
         surface_energies_asymm: Dict[tuple, float] = None,
         symprec: float = 1e-5,
         tol: float = 1e-5,
+        standardize_structure=True,
     ):
-        standardized_structure = get_standardized_structure(
-            structure=primitive_structure,
-            symprec=symprec,
-        )
+        # Standardize structure.
+        if standardize_structure is True:
+            structure = get_standardized_structure(
+                structure=primitive_structure,
+                symprec=symprec,
+            )
+        else:
+            structure = primitive_structure
+        # Get symmetries.
         full_symmetries = get_symmetries(
-            structure=standardized_structure,
+            structure=structure,
             symprec=symprec,
         )
         symmetries = [np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])]
-        
+        # Get all Miller indices.
         surface_energies_new = {}
         parent_miller_indices = {}
         for miller_indices in surface_energies.keys():
@@ -49,29 +55,29 @@ class AsymmetricParticle(BaseParticle):
                 if hkl not in surface_energies_new.keys():
                     surface_energies_new[hkl] = surface_energies[miller_indices]
                     parent_miller_indices[hkl] = miller_indices
-        
+        # Overwrite asymmetric surface energies.
         if surface_energies_asymm is None:
             surface_energies_asymm = surface_energies_new
-        
+        # Introduce random changes in surface enegies.
         if asymm_multiplier is not None:
             for miller_indices in surface_energies_asymm.keys():
                 surface_energies_asymm[miller_indices] *= np.random.uniform(
                     low=1.0, high=asymm_multiplier,
                 )
-        
+        # Get forms.
         forms = []
         for miller_indices, energy in surface_energies_asymm.items():
             forms.append(Form(
                 miller_indices=miller_indices,
                 energy=energy,
-                cell=standardized_structure.cell.T,
+                cell=structure.cell.T,
                 symmetries=symmetries,
                 parent_miller_indices=parent_miller_indices[miller_indices],
             ))
-
+        # Initialize BaseParticle.
         super().__init__(
             forms=forms,
-            standardized_structure=standardized_structure,
+            standardized_structure=structure,
             natoms=natoms,
             tol=tol,
         )
